@@ -1,118 +1,143 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
 import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import {StatusBar} from 'react-native';
+import {Provider} from 'react-redux';
+import {PersistGate} from 'redux-persist/integration/react';
+import {store, persistor} from './src/store';
+import {NavigationContainer} from '@react-navigation/native';
+import {createDrawerNavigator} from '@react-navigation/drawer';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+// Icons
+import {Settings, User, BookOpen} from 'lucide-react-native';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+// Context
+import {ThemeProvider, useTheme} from './src/context/ThemeContext';
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+// Navigation
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+// Screens
+import SettingsScreen from './src/screens/SettingsScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+// Components
+import CustomDrawerContent from './src/components/CustomDrawerContent';
+
+// Types
+import {DrawerParamList} from './src/types/navigation';
+import NotificationPage from './src/screens/NotificationPage';
+import SecurityPage from './src/screens/SecurityPage';
+import CustomHeader from './src/components/CustomHeader';
+import MainStack from './src/navigation/MainStack';
+
+const Drawer = createDrawerNavigator<DrawerParamList>();
+
+const DrawerNavigation = () => {
+  const {theme} = useTheme();
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <Drawer.Navigator
+      drawerContent={props => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        // headerShown: false,
+        drawerStyle: {
+          backgroundColor: theme.surface,
+          width: 300,
+          borderTopRightRadius: 24,
+          borderBottomRightRadius: 24,
+        },
+        drawerType: 'slide',
+        overlayColor: 'rgba(0, 0, 0, 0.6)',
+        drawerActiveBackgroundColor: `${theme.primary}20`,
+        drawerActiveTintColor: theme.primary,
+        drawerInactiveTintColor: theme.text,
+        drawerItemStyle: {
+          borderRadius: 12,
+          paddingHorizontal: 8,
+          marginHorizontal: 8,
+        },
+        drawerLabelStyle: {
+          fontFamily: 'Poppins-Medium',
+          fontSize: 15,
+          marginLeft: 6,
+        },
+      }}>
+      <Drawer.Screen
+        name="MainStack"
+        component={MainStack}
+        options={{
+          headerShown: false,
+          title: 'Notes',
+          drawerIcon: ({color}) => (
+            <BookOpen size={22} color={color} strokeWidth={1.5} />
+          ),
+        }}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <Drawer.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          header: () => <CustomHeader title="Settings" showBackButton={true} />,
+          drawerIcon: ({color}) => (
+            <Settings size={22} color={color} strokeWidth={1.5} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          header: () => <CustomHeader title="Profile" showBackButton={true} />,
+          drawerIcon: ({color}) => (
+            <User size={22} color={color} strokeWidth={1.5} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Notifications"
+        options={{
+          header: () => (
+            <CustomHeader title="Notifications" showBackButton={true} />
+          ),
+          drawerIcon: ({color}) => (
+            <User size={22} color={color} strokeWidth={1.5} />
+          ),
+        }}
+        component={NotificationPage}
+      />
+      <Drawer.Screen
+        name="Security"
+        options={{
+          header: () => <CustomHeader title="Security" showBackButton={true} />,
+          drawerIcon: ({color}) => (
+            <User size={22} color={color} strokeWidth={1.5} />
+          ),
+        }}
+        component={SecurityPage}
+      />
+    </Drawer.Navigator>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+const App: React.FC = () => {
+  const {theme, isDark} = useTheme();
+
+  return (
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <ThemeProvider>
+          <SafeAreaProvider>
+            <StatusBar
+              barStyle={isDark ? 'light-content' : 'dark-content'}
+              backgroundColor={theme.primary}
+            />
+            <NavigationContainer>
+              <DrawerNavigation />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </ThemeProvider>
+      </PersistGate>
+    </Provider>
+  );
+};
 
 export default App;
