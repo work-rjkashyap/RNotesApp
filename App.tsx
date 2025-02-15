@@ -6,7 +6,7 @@ import {store, persistor} from './src/store';
 import {NavigationContainer} from '@react-navigation/native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 // Icons
 import {Settings, User, BookOpen} from 'lucide-react-native';
 
@@ -28,6 +28,7 @@ import NotificationPage from './src/screens/NotificationPage';
 import SecurityPage from './src/screens/SecurityPage';
 import CustomHeader from './src/components/CustomHeader';
 import MainStack from './src/navigation/MainStack';
+import CustomizeScreen from './src/screens/CustomizeScreen';
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
@@ -114,6 +115,16 @@ const DrawerNavigation = () => {
         }}
         component={SecurityPage}
       />
+      <Drawer.Screen
+        name="Customize"
+        options={{
+          header: () => <CustomHeader title="Security" showBackButton={true} />,
+          drawerIcon: ({color}) => (
+            <User size={22} color={color} strokeWidth={1.5} />
+          ),
+        }}
+        component={CustomizeScreen}
+      />
     </Drawer.Navigator>
   );
 };
@@ -122,21 +133,23 @@ const App: React.FC = () => {
   const {theme, isDark} = useTheme();
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <ThemeProvider>
-          <SafeAreaProvider>
-            <StatusBar
-              barStyle={isDark ? 'light-content' : 'dark-content'}
-              backgroundColor={theme.primary}
-            />
-            <NavigationContainer>
-              <DrawerNavigation />
-            </NavigationContainer>
-          </SafeAreaProvider>
-        </ThemeProvider>
-      </PersistGate>
-    </Provider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <ThemeProvider>
+            <SafeAreaProvider>
+              <StatusBar
+                barStyle={isDark ? 'light-content' : 'dark-content'}
+                backgroundColor={theme.primary}
+              />
+              <NavigationContainer>
+                <DrawerNavigation />
+              </NavigationContainer>
+            </SafeAreaProvider>
+          </ThemeProvider>
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
   );
 };
 

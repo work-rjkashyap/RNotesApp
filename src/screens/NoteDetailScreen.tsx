@@ -1,5 +1,4 @@
-// src/screens/NoteDetailScreen.tsx
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   TextInput,
@@ -12,9 +11,10 @@ import {
   Text,
   Modal,
   ActivityIndicator,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
-import {RootStackParamList} from '../types/navigation';
 import {useTheme} from '../context/ThemeContext';
 import {addNote, updateNote, deleteNote} from '../store/slices/noteSlice';
 import {
@@ -22,22 +22,59 @@ import {
   Trash2,
   Calendar,
   Tag,
-  MoreVertical,
   Plus,
   X,
   Edit3,
   CheckCircle,
   AlertTriangle,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Link,
+  Image as ImageIcon,
+  Undo,
+  Redo,
 } from 'lucide-react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
+import {RichEditor, RichToolbar, actions} from 'react-native-pell-rich-editor';
+import {RootStackParamList} from '../types/navigation';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {RouteProp} from '@react-navigation/native';
 import {RootState} from '../store';
 
-const PRESET_TAGS = ['Personal', 'Work', 'Ideas', 'Important', 'Todo'];
+// Types
+type NoteDetailScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'NoteDetail'
+>;
 
-const NoteDetailScreen = ({navigation, route}) => {
+type NoteDetailScreenRouteProp = RouteProp<RootStackParamList, 'NoteDetail'>;
+
+type NoteDetailScreenProps = {
+  navigation: NoteDetailScreenNavigationProp;
+  route: NoteDetailScreenRouteProp;
+};
+
+// Constants
+const PRESET_TAGS = ['Personal', 'Work', 'Ideas', 'Important', 'Todo'];
+const TOOLBAR_HEIGHT = 56;
+
+const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
+  navigation,
+  route,
+}) => {
+  // Theme and Redux
   const {theme, isDark} = useTheme();
   const dispatch = useDispatch();
   const noteId = route.params?.noteId;
 
+  // State
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -45,10 +82,19 @@ const NoteDetailScreen = ({navigation, route}) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isEditing, setIsEditing] = useState(!noteId);
 
+  // Rich Editor Ref
+  const richText = useRef<RichEditor>();
+
+  // Animated values
+  const fabScale = useSharedValue(1);
+  const fabRotate = useSharedValue(0);
+
+  // Selectors
   const note = useSelector((state: RootState) =>
     state.notes.notes.find(n => n.id === noteId),
   );
 
+  // Effects
   useEffect(() => {
     if (noteId && note) {
       setTitle(note.title);
@@ -56,6 +102,11 @@ const NoteDetailScreen = ({navigation, route}) => {
       setTags(note.tags || []);
     }
   }, [noteId, note]);
+
+  // Handlers
+  const handleEditorChange = (text: string) => {
+    setContent(text);
+  };
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -81,6 +132,40 @@ const NoteDetailScreen = ({navigation, route}) => {
     navigation.goBack();
   };
 
+  const handleFabPress = () => {
+    fabScale.value = withSpring(0.8);
+    fabRotate.value = withTiming(45, {duration: 250});
+
+    setTimeout(() => {
+      fabScale.value = withSpring(1);
+      fabRotate.value = withTiming(0, {duration: 250});
+      handleSave();
+    }, 250);
+  };
+
+  const handleDeleteNote = async () => {
+    try {
+      await dispatch(deleteNote(noteId));
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete note. Please try again.');
+    }
+  };
+
+  // Custom toolbar actions
+  const editorInitializedCallback = () => {
+    richText.current?.setContentHTML(content);
+  };
+
+  // Animations
+  const fabAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {scale: withSpring(fabScale.value)},
+      {rotateZ: `${fabRotate.value}deg`},
+    ],
+  }));
+
+  // Sub-components
   const TagModal = () => {
     const [localTags, setLocalTags] = useState<string[]>(tags);
     const [inputValue, setInputValue] = useState('');
@@ -265,15 +350,6 @@ const NoteDetailScreen = ({navigation, route}) => {
     );
   };
 
-  const handleDeleteNote = async () => {
-    try {
-      await dispatch(deleteNote(noteId));
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to delete note. Please try again.');
-    }
-  };
-
   const DeleteNoteModal = () => {
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -301,9 +377,7 @@ const NoteDetailScreen = ({navigation, route}) => {
           <View
             style={[
               styles.modalContainer,
-              {
-                backgroundColor: isDark ? theme.surface : '#FFFFFF',
-              },
+              {backgroundColor: isDark ? theme.surface : '#FFFFFF'},
             ]}>
             <View style={styles.modalIconContainer}>
               <View
@@ -379,10 +453,9 @@ const NoteDetailScreen = ({navigation, route}) => {
     );
   };
 
+  // Main Render
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}>
+    <View style={styles.container}>
       <View style={[styles.wrapper, {backgroundColor: theme.background}]}>
         <View
           style={[styles.header, {borderBottomColor: theme.secondary + '20'}]}>
@@ -404,7 +477,7 @@ const NoteDetailScreen = ({navigation, route}) => {
           </View>
 
           <View style={styles.headerRight}>
-            {noteId && (
+            {noteId && !isEditing && (
               <TouchableOpacity
                 style={[styles.iconBtn, {backgroundColor: theme.error + '15'}]}
                 onPress={() => setShowDeleteModal(true)}>
@@ -419,72 +492,145 @@ const NoteDetailScreen = ({navigation, route}) => {
           </View>
         </View>
 
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.contentContainer}>
-          <TextInput
-            style={[styles.titleInput, {color: theme.text}]}
-            placeholder="Note Title"
-            placeholderTextColor={theme.secondary + '80'}
-            value={title}
-            onChangeText={setTitle}
-            editable={isEditing}
-            multiline
-          />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardAvoidingView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? TOOLBAR_HEIGHT : 0}>
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.contentContainer}>
+            <TextInput
+              style={[styles.titleInput, {color: theme.text}]}
+              placeholder="Note Title"
+              placeholderTextColor={theme.secondary + '80'}
+              value={title}
+              onChangeText={setTitle}
+              editable={isEditing}
+              multiline
+            />
 
-          {tags.length > 0 && (
-            <View style={styles.tagList}>
-              {tags.map(tag => (
-                <View
-                  key={tag}
-                  style={[styles.tag, {backgroundColor: theme.primary + '15'}]}>
-                  <Text style={[styles.tagText, {color: theme.primary}]}>
-                    {tag}
-                  </Text>
-                </View>
-              ))}
+            {tags.length > 0 && (
+              <View style={styles.tagList}>
+                {tags.map(tag => (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[
+                      styles.tag,
+                      {backgroundColor: theme.primary + '15'},
+                    ]}>
+                    <Text style={[styles.tagText, {color: theme.primary}]}>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.editorContainer}>
+              {isEditing && (
+                <RichToolbar
+                  editor={richText}
+                  selectedIconTint={theme.primary}
+                  iconTint={theme.secondary}
+                  actions={[
+                    actions.setBold,
+                    actions.setItalic,
+                    actions.setUnderline,
+                    actions.heading1,
+                    actions.heading2,
+                    actions.insertBulletsList,
+                    actions.insertOrderedList,
+                    actions.insertLink,
+                    actions.insertImage,
+                    actions.undo,
+                    actions.redo,
+                  ]}
+                  iconMap={{
+                    [actions.setBold]: () => (
+                      <Bold color={theme.secondary} size={20} />
+                    ),
+                    [actions.setItalic]: () => (
+                      <Italic color={theme.secondary} size={20} />
+                    ),
+                    [actions.insertBulletsList]: () => (
+                      <List color={theme.secondary} size={20} />
+                    ),
+                    [actions.insertOrderedList]: () => (
+                      <ListOrdered color={theme.secondary} size={20} />
+                    ),
+                    [actions.insertLink]: () => (
+                      <Link color={theme.secondary} size={20} />
+                    ),
+                    [actions.insertImage]: () => (
+                      <ImageIcon color={theme.secondary} size={20} />
+                    ),
+                    [actions.undo]: () => (
+                      <Undo color={theme.secondary} size={20} />
+                    ),
+                    [actions.redo]: () => (
+                      <Redo color={theme.secondary} size={20} />
+                    ),
+                  }}
+                  style={[
+                    styles.toolbar,
+                    {backgroundColor: isDark ? theme.surface : '#FFFFFF'},
+                  ]}
+                />
+              )}
+
+              <RichEditor
+                ref={richText}
+                onChange={handleEditorChange}
+                initialContentHTML={content}
+                editorInitializedCallback={editorInitializedCallback}
+                disabled={!isEditing}
+                placeholder="Start writing..."
+                initialHeight={400}
+                style={styles.editor}
+                containerStyle={[
+                  styles.editorContainer,
+                  {backgroundColor: theme.background},
+                ]}
+                editorStyle={{
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  placeholderColor: theme.secondary + '80',
+                  contentCSSText: `
+                    font-family: 'Poppins-Regular';
+                    font-size: 16px;
+                    line-height: 24px;
+                    color: ${theme.text};
+                  `,
+                }}
+              />
             </View>
+          </ScrollView>
+
+          {isEditing && (
+            <Animated.View
+              style={[
+                styles.fab,
+                fabAnimatedStyle,
+                {
+                  backgroundColor: theme.primary,
+                  shadowColor: theme.primary,
+                },
+              ]}>
+              <TouchableOpacity
+                onPress={handleFabPress}
+                activeOpacity={0.8}
+                style={styles.fabTouchable}>
+                <Save color="#FFFFFF" size={24} strokeWidth={1.5} />
+              </TouchableOpacity>
+            </Animated.View>
           )}
+        </KeyboardAvoidingView>
 
-          <TextInput
-            style={[
-              styles.contentInput,
-              {color: theme.text},
-              !isEditing && styles.readOnlyInput,
-            ]}
-            placeholder="Start writing..."
-            placeholderTextColor={theme.secondary + '80'}
-            multiline
-            value={content}
-            onChangeText={setContent}
-            editable={isEditing}
-            textAlignVertical="top"
-          />
-        </ScrollView>
-
-        {isEditing && (
-          <TouchableOpacity
-            style={[
-              styles.fab,
-              {
-                backgroundColor: theme.primary,
-                shadowColor: theme.primary,
-                shadowOffset: {width: 0, height: 4},
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-              },
-            ]}
-            onPress={handleSave}
-            activeOpacity={0.8}>
-            <Save color="#FFFFFF" size={24} strokeWidth={1.5} />
-          </TouchableOpacity>
-        )}
-
-        <DeleteNoteModal />
         <TagModal />
+        <DeleteNoteModal />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -493,6 +639,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   wrapper: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
     flex: 1,
   },
   header: {
@@ -548,6 +697,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingVertical: 8,
   },
+  liveEditContainer: {
+    position: 'relative',
+    flex: 1,
+    minHeight: 200,
+  },
+  hiddenInput: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    color: 'transparent',
+    padding: 0,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlignVertical: 'top',
+    zIndex: 1,
+  },
+  markdownContainer: {
+    flex: 1,
+    minHeight: 200,
+  },
   tagList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -563,31 +734,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Poppins-Medium',
   },
-  contentInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Poppins-Regular',
-    lineHeight: 24,
-    minHeight: 200,
-    textAlignVertical: 'top',
-    paddingTop: 8,
-  },
-  readOnlyInput: {
-    opacity: 0.8,
-  },
   fab: {
     position: 'absolute',
     right: 16,
-    bottom: 16,
     width: 56,
     height: 56,
     borderRadius: 28,
+    elevation: 4,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  fabTouchable: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
   },
   modalOverlay: {
     flex: 1,
@@ -601,11 +763,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
   },
   modalIconContainer: {
     marginBottom: 16,
@@ -686,11 +843,6 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderRadius: 24,
     padding: 24,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
   },
   tagModalHeader: {
     flexDirection: 'row',
@@ -773,6 +925,13 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
+  saveButton: {
+    flex: 1,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
   cancelButton: {
     flex: 1,
     height: 48,
@@ -781,22 +940,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
   },
-  saveButton: {
-    flex: 1,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
+  saveButtonText: {
+    fontSize: 15,
+    fontFamily: 'Poppins-SemiBold',
+    letterSpacing: 0.3,
   },
   cancelButtonText: {
     fontSize: 15,
     fontFamily: 'Poppins-Medium',
     letterSpacing: 0.3,
   },
-  saveButtonText: {
-    fontSize: 15,
-    fontFamily: 'Poppins-SemiBold',
-    letterSpacing: 0.3,
+  editorContainer: {
+    flex: 1,
+    minHeight: 400,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  editor: {
+    flex: 1,
+  },
+  toolbar: {
+    height: TOOLBAR_HEIGHT,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
 });
 

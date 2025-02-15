@@ -15,6 +15,7 @@ export type DrawerParamList = {
   Profile: undefined;
   Notifications: undefined;
   Security: undefined;
+  Customize: undefined;
 };
 
 export type RootStackNavigationProp =

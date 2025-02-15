@@ -5,10 +5,11 @@ import CustomHeader from '../components/CustomHeader';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen';
-import NoteDetailScreen from '../screens/NoteDetailScreen';
+// import NoteDetailScreen from '../screens/NoteDetailScreen';
 
 // Types
 import {RootStackParamList} from '../types/navigation';
+import NoteDetailScreen from '../screens/NoteDetailScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

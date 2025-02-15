@@ -1,13 +1,8 @@
+// src/store/slices/noteSlice.ts
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {Note} from '../../types/note';
+import type {Note, NotesState} from '../../types/notes';
 
-interface NoteState {
-  notes: Note[];
-  loading: boolean;
-  error: string | null;
-}
-
-const initialState: NoteState = {
+const initialState: NotesState = {
   notes: [],
   loading: false,
   error: null,
@@ -18,7 +13,7 @@ const noteSlice = createSlice({
   initialState,
   reducers: {
     addNote: (state, action: PayloadAction<Note>) => {
-      state.notes.unshift(action.payload);
+      state.notes.push(action.payload);
     },
     updateNote: (state, action: PayloadAction<Note>) => {
       const index = state.notes.findIndex(
@@ -31,11 +26,16 @@ const noteSlice = createSlice({
     deleteNote: (state, action: PayloadAction<string>) => {
       state.notes = state.notes.filter(note => note.id !== action.payload);
     },
-    setNotes: (state, action: PayloadAction<Note[]>) => {
-      state.notes = action.payload;
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
     },
   },
 });
 
-export const {addNote, updateNote, deleteNote, setNotes} = noteSlice.actions;
+export const {addNote, updateNote, deleteNote, setLoading, setError} =
+  noteSlice.actions;
+
 export default noteSlice.reducer;

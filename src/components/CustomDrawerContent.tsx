@@ -10,32 +10,76 @@ import {
   User,
   Moon,
   Sun,
-  Menu,
+  Home,
+  Timer,
+  Grid,
+  Palette,
+  Cloud,
+  Crown,
+  Star,
+  MessageCircle,
   Github,
   Twitter,
-  Bell,
-  Shield,
 } from 'lucide-react-native';
 
 const CustomDrawerContent: React.FC<DrawerContentComponentProps> = props => {
   const {theme, isDark, toggleTheme} = useTheme();
   const [activeRoute, setActiveRoute] = React.useState('Home');
 
+  const getCurrentDate = () => {
+    const date = new Date();
+    const days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return {
+      day: days[date.getDay()],
+      date: `${date.getDate()} ${
+        months[date.getMonth()]
+      } ${date.getFullYear()}`,
+    };
+  };
+
   const NavItem = ({
     icon: Icon,
     label,
     route,
+    isHome = false,
   }: {
     icon: any;
     label: string;
     route: string;
+    isHome?: boolean;
   }) => (
     <TouchableOpacity
       style={[
         styles.navItem,
         {
-          backgroundColor:
-            activeRoute === route ? theme.primary + '15' : 'transparent',
+          backgroundColor: isHome
+            ? '#FFF5E9'
+            : activeRoute === route
+            ? theme.primary + '15'
+            : 'transparent',
         },
       ]}
       onPress={() => {
@@ -45,7 +89,13 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = props => {
       <View style={styles.iconContainer}>
         <Icon
           size={22}
-          color={activeRoute === route ? theme.primary : theme.text}
+          color={
+            isHome
+              ? '#E4A853'
+              : activeRoute === route
+              ? theme.primary
+              : theme.text
+          }
           strokeWidth={1.5}
         />
       </View>
@@ -53,7 +103,11 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = props => {
         style={[
           styles.navText,
           {
-            color: activeRoute === route ? theme.primary : theme.text,
+            color: isHome
+              ? '#E4A853'
+              : activeRoute === route
+              ? theme.primary
+              : theme.text,
             fontWeight: activeRoute === route ? '600' : '500',
           },
         ]}>
@@ -62,84 +116,57 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = props => {
     </TouchableOpacity>
   );
 
+  const currentDate = getCurrentDate();
+
   return (
     <DrawerContentScrollView
       {...props}
       style={[styles.container, {backgroundColor: theme.surface}]}>
-      {/* User Profile Section */}
-      <View
-        style={[styles.profileCard, {backgroundColor: theme.primary + '20'}]}>
-        <View style={styles.profileHeader}>
-          <View
-            style={[styles.avatarContainer, {backgroundColor: theme.surface}]}>
-            <Image
-              source={{uri: 'https://i.pravatar.cc/100'}}
-              style={styles.avatar}
-            />
-            <View style={[styles.statusDot, {backgroundColor: '#4CAF50'}]} />
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={[styles.userName, {color: theme.text}]}>John Doe</Text>
-            <Text style={[styles.userEmail, {color: theme.secondary}]}>
-              john.doe@example.com
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, {color: theme.primary}]}>28</Text>
-            <Text style={[styles.statLabel, {color: theme.secondary}]}>
-              Notes
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.statDivider,
-              {backgroundColor: theme.secondary + '30'},
-            ]}
-          />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, {color: theme.primary}]}>5</Text>
-            <Text style={[styles.statLabel, {color: theme.secondary}]}>
-              Folders
-            </Text>
-          </View>
-        </View>
+      {/* App Header */}
+      <View style={styles.header}>
+        <Text style={styles.appName}>RNotes</Text>
+        <Text style={styles.date}>{currentDate.day}</Text>
+        <Text style={styles.subDate}>{currentDate.date}</Text>
       </View>
 
       {/* Navigation Section */}
-      <View
-        style={[styles.navigationContainer, {backgroundColor: theme.surface}]}>
-        <NavItem icon={Menu} label="My Notes" route="MainStack" />
-        <NavItem icon={Bell} label="Notifications" route="Notifications" />
-        <NavItem icon={Shield} label="Security" route="Security" />
+      <View style={styles.navigationContainer}>
+        <NavItem icon={Home} label="Home" route="Home" />
+        <NavItem icon={Timer} label="Timer" route="Timer" />
+        <NavItem icon={Grid} label="Categories" route="Categories" />
+        <NavItem icon={Palette} label="Customize" route="Customize" />
         <NavItem icon={Settings} label="Settings" route="Settings" />
-        <NavItem icon={User} label="Profile" route="Profile" />
+        <NavItem icon={Cloud} label="Backups" route="Backups" />
+        <NavItem icon={Crown} label="Premium" route="Premium" />
+        <NavItem icon={Star} label="Rate this app" route="RateApp" />
+        <NavItem icon={MessageCircle} label="Contact us" route="Contact" />
       </View>
 
       {/* Footer Section */}
       <View style={styles.footer}>
         {/* Theme Toggle */}
-        <TouchableOpacity
-          style={[styles.themeToggle, {backgroundColor: theme.primary + '10'}]}
-          onPress={toggleTheme}>
-          {isDark ? (
-            <Moon size={20} color={theme.primary} strokeWidth={1.5} />
-          ) : (
-            <Sun size={20} color={theme.primary} strokeWidth={1.5} />
-          )}
-        </TouchableOpacity>
 
         {/* Social Links */}
         <View style={styles.socialLinks}>
           <TouchableOpacity
             style={[styles.socialButton, {backgroundColor: theme.surface}]}>
-            <Github size={20} color={theme.text} strokeWidth={1.5} />
+            <Github size={25} color={theme.text} strokeWidth={1.5} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.socialButton, {backgroundColor: theme.surface}]}>
-            <Twitter size={20} color={theme.text} strokeWidth={1.5} />
+            <Twitter size={25} color={theme.text} strokeWidth={1.5} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.socialButton,
+              {backgroundColor: theme.primary + '10'},
+            ]}
+            onPress={toggleTheme}>
+            {isDark ? (
+              <Moon size={25} color={theme.primary} strokeWidth={1.5} />
+            ) : (
+              <Sun size={25} color={theme.primary} strokeWidth={1.5} />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -155,6 +182,25 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = props => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    padding: 20,
+    paddingBottom: 20,
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: '#E4A853',
+    marginBottom: 4,
+  },
+  date: {
+    fontSize: 20,
+    color: '#3C3C43',
+    marginBottom: 2,
+  },
+  subDate: {
+    fontSize: 16,
+    color: '#8E8E93',
   },
   profileCard: {
     margin: 10,
@@ -257,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   socialButton: {
-    padding: 8,
+    padding: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',
